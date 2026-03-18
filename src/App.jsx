@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchData } from './utils/parseData';
 import CasaDashboard from './CasaDashboard';
 import TechniciensDashboard from './TechniciensDashboard';
+import BillingDashboard from './BillingDashboard';
 import { fetchHoursMap } from './utils/parseHours';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -92,7 +93,7 @@ function Table({ headers, rows, keyField }) {
 function Section({ title, children }) {
   return (
     <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 6px rgba(0,0,0,0.08)', marginBottom: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#1A2B4A', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16, borderBottom: '2px solid #E8A020', paddingBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#1A2B4A', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16, borderBottom: '2px solid #2563EB', paddingBottom: 8 }}>{title}</div>
       {children}
     </div>
   );
@@ -116,6 +117,7 @@ export default function App() {
   const [activeDept, setActiveDept] = useState(() => {
     const r = user?.role || '';
     if (['dispatch_casa'].includes(r)) return 'casa';
+    if (['billing'].includes(r)) return 'billing';
     if (['manager_tech'].includes(r)) return 'tech';
     return 'condo';
   });
@@ -129,6 +131,7 @@ export default function App() {
   const role = user?.role || '';
   const canSeeCondo = ['manager_condo', 'admin', 'gestionnaire', 'dispatch_condo'].includes(role);
   const canSeeTech  = ['admin', 'manager_condo', 'manager_tech'].includes(role);
+  const canSeeBilling = ['admin', 'billing'].includes(role);
   const canSeeCasa  = ['admin', 'dispatch_casa'].includes(role);
   const isManagerCondo = role === 'manager_condo';
   const isAdmin = user?.role === 'admin';
@@ -333,24 +336,28 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', background: '#F0F4F8', minHeight: '100vh', width: '100%' }}>
-      <div style={{ background: '#1A2B4A', color: '#fff', padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#fff', color: '#1A2B4A', padding: '10px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', borderBottom: '3px solid #1A2B4A' }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 0.5 }}>DURACLIM — DASHBOARD {activeDept === 'casa' ? 'CASA' : 'CONDO'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img src="/logo-duraclim.png" alt="DuraClim" style={{ height: 40, objectFit: 'contain' }} />
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0.5, color: '#1A2B4A' }}>Dashboard</div>
+          </div>
           <div style={{ fontSize: 11, color: '#93C5FD', marginTop: 2 }}>{filtered.length} entrees · {lastRefresh ? `Mis a jour ${format(lastRefresh, 'HH:mm', { locale: fr })}` : ''} · <span style={{ background: '#2E4D7B', borderRadius: 4, padding: '1px 8px' }}>{roleLabel}</span></div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginRight: 16 }}>
-          {canSeeCondo && <button onClick={() => setActiveDept('condo')} style={{ background: activeDept === 'condo' ? '#E8A020' : 'transparent', color: '#fff', border: '1px solid #E8A020', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Condo</button>}
-          {canSeeCasa  && <button onClick={() => setActiveDept('casa')}  style={{ background: activeDept === 'casa'  ? '#E8A020' : 'transparent', color: '#fff', border: '1px solid #E8A020', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Casa</button>}
-          {canSeeTech  && <button onClick={() => setActiveDept('tech')}  style={{ background: activeDept === 'tech'  ? '#E8A020' : 'transparent', color: '#fff', border: '1px solid #E8A020', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Techniciens</button>}
+          {canSeeCondo && <button onClick={() => setActiveDept('condo')} style={{ background: activeDept === 'condo' ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'condo' ? '#fff' : '#1A2B4A' }}>Condo</button>}
+          {canSeeCasa  && <button onClick={() => setActiveDept('casa')}  style={{ background: activeDept === 'casa'  ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'casa' ? '#fff' : '#1A2B4A' }}>Casa</button>}
+          {canSeeTech  && <button onClick={() => setActiveDept('tech')}  style={{ background: activeDept === 'tech'  ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'tech' ? '#fff' : '#1A2B4A' }}>Techniciens</button>}
+          {canSeeBilling && <button onClick={() => setActiveDept('billing')} style={{ background: activeDept === 'billing' ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'billing' ? '#fff' : '#1A2B4A' }}>Facturation</button>}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={load} style={{ background: '#E8A020', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Actualiser</button>
-          <button onClick={handleLogout} style={{ background: 'transparent', color: '#93C5FD', border: '1px solid #93C5FD', borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Deconnexion</button>
+          <button onClick={load} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Actualiser</button>
+          <button onClick={handleLogout} style={{ background: 'transparent', color: '#1A2B4A', border: '1px solid #1A2B4A', borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Deconnexion</button>
         </div>
       </div>
 
       <div style={{ padding: '20px 24px' }}>
-        {activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <>
+        {activeDept === 'billing' && canSeeBilling ? <BillingDashboard role={role} /> : activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <>
         <Section title="Filtres">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
             <div><div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 4 }}>DATE DEBUT</div><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} /></div>
@@ -368,10 +375,10 @@ export default function App() {
             <KPICard label="Revenu Total" value={fmtMoney(kpis.totalRevenu)} sub={`Prevu: ${fmtMoney(kpis.totalRevenuPrevu)}`} color="#1E7D46" bg="#D6F0E0" />
             <KPICard label="Ecart Revenu" value={`${kpis.ecart >= 0 ? '+' : ''}${fmtMoney(kpis.ecart)}`} color={kpis.ecart >= 0 ? '#1E7D46' : '#C0392B'} bg={kpis.ecart >= 0 ? '#D6F0E0' : '#FDECEA'} warn={kpis.ecart < 0} />
             <KPICard label="$/h Moyen" value={kpis.dph !== null ? `$${kpis.dph.toFixed(0)}` : 'N/A'} sub={kpis.dph !== null ? 'Cible: $120/h' : 'Heures non disponibles'} color={kpis.dph === null ? '#6B7280' : kpis.dph >= 120 ? '#1E7D46' : '#E8A020'} bg={kpis.dph === null ? '#F3F4F6' : kpis.dph >= 120 ? '#D6F0E0' : '#FFF9C4'} />
-            <KPICard label="Pts/Jour Moyen" value={kpis.avgPtsDay.toFixed(1)} sub={`Cible: 8 pts/j - ${kpis.pctAbove8.toFixed(0)}% des jours >=8`} color={kpis.avgPtsDay >= 8 ? '#1E7D46' : kpis.avgPtsDay >= 5 ? '#E8A020' : '#C0392B'} bg={kpis.avgPtsDay >= 8 ? '#D6F0E0' : kpis.avgPtsDay >= 5 ? '#FFF9C4' : '#FDECEA'} />
+            <KPICard label="Pts/Jour Moyen" value={kpis.avgPtsDay.toFixed(1)} sub={`Cible: 8 pts/j - ${kpis.pctAbove8.toFixed(0)}% des jours >=8`} color={kpis.avgPtsDay >= 8 ? '#1E7D46' : kpis.avgPtsDay >= 5 ? '#2563EB' : '#C0392B'} bg={kpis.avgPtsDay >= 8 ? '#D6F0E0' : kpis.avgPtsDay >= 5 ? '#FFF9C4' : '#FDECEA'} />
             <KPICard label="Total RDV" value={kpis.totalRDV.toFixed(0)} sub="RDV completes" />
             <KPICard label="Jours Analyses" value={kpis.nbJours} sub="Journees gestionnaire" />
-            <KPICard label="Rev/Tech/Jour" value={fmtMoney(kpis.avgRevTechJour)} sub="Cible: $1 200/tech/jour" color={kpis.avgRevTechJour >= 1200 ? '#1E7D46' : kpis.avgRevTechJour >= 900 ? '#E8A020' : '#C0392B'} bg={kpis.avgRevTechJour >= 1200 ? '#D6F0E0' : kpis.avgRevTechJour >= 900 ? '#FFF9C4' : '#FDECEA'} />
+            <KPICard label="Rev/Tech/Jour" value={fmtMoney(kpis.avgRevTechJour)} sub="Cible: $1 200/tech/jour" color={kpis.avgRevTechJour >= 1200 ? '#1E7D46' : kpis.avgRevTechJour >= 900 ? '#2563EB' : '#C0392B'} bg={kpis.avgRevTechJour >= 1200 ? '#D6F0E0' : kpis.avgRevTechJour >= 900 ? '#FFF9C4' : '#FDECEA'} />
           </div>
         )}
 
@@ -400,7 +407,7 @@ export default function App() {
               rdv: g.rdv.toFixed(0),
               revenuFormatted: fmtMoney(g.revenu),
               dphFormatted: g.dph !== null ? `$${g.dph.toFixed(0)}/h` : 'N/A',
-              bar: <div style={{ minWidth: 120 }}><ProgressBar val={g.avgPtsJour} max={8} color={g.avgPtsJour >= 8 ? '#1E7D46' : g.avgPtsJour >= 5 ? '#E8A020' : '#C0392B'} /></div>,
+              bar: <div style={{ minWidth: 120 }}><ProgressBar val={g.avgPtsJour} max={8} color={g.avgPtsJour >= 8 ? '#1E7D46' : g.avgPtsJour >= 5 ? '#2563EB' : '#C0392B'} /></div>,
             }))} />
           </Section>
         )}

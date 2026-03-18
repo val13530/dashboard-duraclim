@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { fetchCasaData } from './utils/parseCasaData';
 import { fetchHoursByTech } from './utils/parseHours';
+import { fetchBillingData } from './utils/parseBillingData';
 import HelpPanel from './HelpPanel';
 
 const SEUIL_DPH = 120;
@@ -38,6 +39,7 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
   const safeCondoRows = condoRows || [];
   const [casaRows, setCasaRows] = useState([]);
   const [hoursMap, setHoursMap] = useState({});
+  const [billingRows, setBillingRows] = useState([]);
   const [excluded, setExcluded] = useState([]);
   const [selected, setSelected] = useState([]);
   const [srchExcl, setSrchExcl] = useState('');
@@ -48,6 +50,9 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
   useEffect(() => {
     fetchCasaData().then(r => setCasaRows(r)).catch(() => {});
     fetchHoursByTech().then(m => setHoursMap(m)).catch(() => {});
+    Promise.all([fetchBillingData(2025), fetchBillingData(2026)])
+      .then(([r25, r26]) => setBillingRows([...r25, ...r26]))
+      .catch(() => {});
   }, []);
 
   const togExcl = t => setExcluded(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]);
@@ -66,12 +71,37 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
     return !r.isMixte;
   }), [casaRows, dateFrom, dateTo]);
 
+  const rapportByTech = useMemo(() => {
+    const filtered = billingRows.filter(r => {
+      if (dateFrom && r.dateStr < dateFrom) return false;
+      if (dateTo   && r.dateStr > dateTo)   return false;
+      if (r.jobStatus !== 'Done') return false;
+      if ((r.client || '').trim().replace(/\s+/g, ' ').toUpperCase() === 'CONDO KPI') return false;
+      return true;
+    });
+    const map = {};
+    filtered.forEach(r => {
+      const t = r.tech || 'Non assigne';
+      if (!map[t]) map[t] = { total: 0, done: 0 };
+      map[t].total++;
+      if ((r.rapportFait || '').toLowerCase() === 'done') map[t].done++;
+    });
+    return map;
+  }, [billingRows, dateFrom, dateTo]);
+
+  const rapportGlobal = useMemo(() => {
+    const vals = Object.values(rapportByTech);
+    const total = vals.reduce((s,v) => s + v.total, 0);
+    const done  = vals.reduce((s,v) => s + v.done, 0);
+    return total > 0 ? { pct: Math.round(done/total*100), done, total } : null;
+  }, [rapportByTech]);
+
   const allTechs = useMemo(() => {
     const s = new Set();
     fCondo.forEach(r => r.tech1 && s.add(r.tech1));
     fCasa.forEach(r  => r.technicien && s.add(r.technicien));
     return [...s].sort();
-  }, [fCondo, fCasa, hoursMap]);
+  }, [fCondo, fCasa, hoursMap, rapportByTech]);
 
   const byTech = useMemo(() => {
     const map = {};
@@ -133,6 +163,8 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
         joursTotal: jT, joursCondo: t.jC.size, joursCasa: t.jK.size,
         dphTotal: dphT, dphCondo: dphC, dphCasa: dphK,
         cibleTotal: cibleT, ecartCible: rT - cibleT, cibleDph, ecartDph,
+        rapportPct: rapportByTech[t.n] ? Math.round(rapportByTech[t.n].done / rapportByTech[t.n].total * 100) : null,
+        rapportStr: rapportByTech[t.n] ? (rapportByTech[t.n].done + '/' + rapportByTech[t.n].total) : null,
       };
     });
   }, [fCondo, fCasa]);
@@ -220,6 +252,7 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
         <KpiCard label="Dollar/h Moyen"  value={avgDph !== null ? '$' + fmtDec(avgDph) + '/h' : '-'} sub="Condo + Casa" status={avgDph !== null ? (avgDph >= SEUIL_DPH ? 'green' : 'red') : 'neutral'} />
         <KpiCard label="Heures Totales"  value={fmtDec(totH, 1) + ' h'} status="neutral" />
         <KpiCard label="Jours"           value={totJ} status="neutral" />
+        <KpiCard label="Rapport Fait" value={rapportGlobal ? rapportGlobal.pct + '%' : '-'} sub={rapportGlobal ? rapportGlobal.done + ' / ' + rapportGlobal.total + ' jobs' : ''} status={rapportGlobal ? (rapportGlobal.pct >= 90 ? 'green' : rapportGlobal.pct >= 70 ? 'neutral' : 'red') : 'neutral'} />
       </div>
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e5e7eb' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -238,6 +271,7 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
               <th onClick={hs('ecartCible')}  style={th(true)}>Ecart ${arr('ecartCible')}</th>
               <th onClick={hs('cibleDph')}    style={th(true)}>Cible $/h{arr('cibleDph')}</th>
               <th onClick={hs('ecartDph')}    style={th(true)}>Ecart $/h{arr('ecartDph')}</th>
+              <th onClick={hs('rapportPct')}  style={th(true)}>Rapport{arr('rapportPct')}</th>
             </tr>
           </thead>
           <tbody>
@@ -258,10 +292,11 @@ export default function TechniciensDashboard({ condoRows, dateFrom, dateTo, setD
                   <td style={{ ...td(true), fontWeight: 700, color: t.ecartCible >= 0 ? '#16a34a' : '#dc2626' }}>{(t.ecartCible >= 0 ? '+' : '') + fmtMoney(t.ecartCible)}</td>
                   <td style={td(true)}>{t.cibleDph !== null ? '$' + fmtDec(t.cibleDph) + '/h' : '-'}</td>
                   <td style={{ ...td(true), fontWeight: 700, color: t.ecartDph !== null ? (t.ecartDph >= 0 ? '#16a34a' : '#dc2626') : '#aaa' }}>{t.ecartDph !== null ? (t.ecartDph >= 0 ? '+' : '') + '$' + fmtDec(t.ecartDph) + '/h' : '-'}</td>
+                  <td style={{ ...td(true), fontWeight: 700, color: t.rapportPct !== null ? (t.rapportPct >= 90 ? '#16a34a' : t.rapportPct >= 70 ? '#ea580c' : '#dc2626') : '#aaa' }}>{t.rapportPct !== null ? t.rapportPct + '% (' + t.rapportStr + ')' : '-'}</td>
                 </tr>
               );
             })}
-            {sorted.length === 0 && <tr><td colSpan={13} style={{ ...td(true), textAlign: 'center', color: '#aaa' }}>Aucune donnee</td></tr>}
+            {sorted.length === 0 && <tr><td colSpan={14} style={{ ...td(true), textAlign: 'center', color: '#aaa' }}>Aucune donnee</td></tr>}
           </tbody>
         </table>
       </div>
