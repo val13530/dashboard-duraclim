@@ -43,7 +43,14 @@ export async function fetchBillingData(year) {
             date,
             client:        (row['Nom du Client'] || '').trim(),
             jobId:         (row['# Job'] || '').trim(),
-            tech:          ((row['Tech'] || '').trim().includes(' - ') ? (row['Tech'] || '').trim().split(' - ').pop().trim() : (row['Tech'] || '').trim()),
+            tech:          (() => {
+            const raw = (row['Tech'] || '').trim();
+            const name = raw.includes(' - ') ? raw.split(' - ').pop().trim() : raw;
+            const mapping = {
+              'Alexandre G': 'Alexandre Germain',
+            };
+            return mapping[name] || name;
+          })(),
             typeOfJob:     (row['Type of job'] || '').trim(),
             jobStatus:     (row['Job Status'] || '').trim(),
             quote:         cleanMoney(row['Quote']),
