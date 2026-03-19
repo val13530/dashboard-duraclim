@@ -187,7 +187,55 @@ const HELP_CONTENT = {
         }
       ]
     }
-  }
+  },
+  billing: {
+    admin: {
+      title: 'Dashboard Facturation — Guide',
+      sections: [
+        {
+          heading: 'KPIs principaux',
+          body: 'Revenu Facture : somme des Quote sur les jobs Done (hors CONDO KPI). Revenu Encaisse : somme des Done sur les jobs payes. Ecart : Facture moins Encaisse — negatif = rabais ou service annule, positif = vente additionnelle.'
+        },
+        {
+          heading: 'Comptes a recevoir (AR)',
+          body: 'AR Total : somme des Quote sur les jobs Unpaid (hors CONDO KPI). AR +30 jours : jobs Unpaid depuis plus de 30 jours — priorite de relance. AR 0-30 jours : jobs Unpaid recents — a surveiller.'
+        },
+        {
+          heading: 'Onglets disponibles',
+          body: 'Vue ensemble : repartition par statut et type de paiement. Comptes a recevoir : liste detaillee des Unpaid triable par date, client, montant, anciennete. Par type paiement : Cash, CARD, CHECK, E-TRANSFER, EXTERNAL, FREE, INTERAC, VIREMENT avec % du total. Detail complet : toutes les lignes triables avec filtres.'
+        },
+        {
+          heading: 'Filtres',
+          body: 'Annee (2025 / 2026 / les deux), date debut et fin, Job Status (Done / Cancelled / Replanned / Duplicate), Payment Status (Paid / Unpaid / Free / Ticket / On other invoice / No Payment).'
+        },
+        {
+          heading: 'Regles de calcul',
+          body: 'Les lignes CONDO KPI sont exclues de tous les calculs. Les jobs avec Quote = 0 sont exclus du detail et des AR. Payment Status Unpaid = montant Quote dans AR. Payment Status Paid = montant Done dans Encaisse.'
+        }
+      ]
+    },
+    billing: {
+      title: 'Dashboard Facturation — Guide',
+      sections: [
+        {
+          heading: 'KPIs principaux',
+          body: 'Revenu Facture : somme des Quote sur les jobs Done. Revenu Encaisse : somme des Done sur les jobs payes. Ecart : Facture moins Encaisse.'
+        },
+        {
+          heading: 'Comptes a recevoir',
+          body: 'AR Total : jobs Unpaid a recouvrer. AR +30 jours : priorite de relance immediate. AR 0-30 jours : a surveiller. Dans longlet Comptes a recevoir, les lignes en rouge sont les jobs de plus de 30 jours.'
+        },
+        {
+          heading: 'Relance client',
+          body: 'Trier le tableau AR par Jours (decroissant) pour voir les plus anciens en premier. La colonne Notes contient les informations utiles pour la relance.'
+        },
+        {
+          heading: 'Types de paiement',
+          body: 'Cash, CARD, CHECK, E-TRANSFER, EXTERNAL, FREE, INTERAC, VIREMENT. Longlet Par type paiement montre la repartition en % du revenu total encaisse.'
+        }
+      ]
+    }
+  },
 };
 
 function getHelp(dept, role) {
