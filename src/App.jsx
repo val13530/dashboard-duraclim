@@ -19,6 +19,43 @@ function dateStr(d) {
 
 function fmtMoney(v) { return '$' + v.toLocaleString('fr-CA', { maximumFractionDigits: 0 }); }
 
+
+function getCibleCondoDph(rows, hoursMap) {
+  const moisBasse = new Set([11,0,1,2]);
+  let totalH = 0, totalCible = 0;
+  const seen = new Set();
+  rows.forEach(r => {
+    if (!r.date || !r.gestionnaire) return;
+    const dk = dateStr(r.date);
+    const key = dk + '_' + r.gestionnaire;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const h = hoursMap[key] || 0;
+    if (!h) return;
+    const m = r.date.getMonth();
+    const cible = moisBasse.has(m) ? 100 : 120;
+    totalH += h;
+    totalCible += h * cible;
+  });
+  return totalH > 0 ? totalCible / totalH : 120;
+}
+
+function getCibleCasaDph(rows) {
+  // Cibles Casa : Dec-Mars=90, Avr/Oct/Nov=100, Mai-Sept=120
+  let totalH = 0, totalCible = 0;
+  rows.forEach(r => {
+    if (!r.date) return;
+    const m = new Date(r.dateStr).getMonth();
+    const h = parseFloat(r.heures) || 0;
+    let cible = 120;
+    if ([11,0,1,2].includes(m)) cible = 90;
+    else if ([3,9,10].includes(m)) cible = 100;
+    totalH += h;
+    totalCible += h * cible;
+  });
+  return totalH > 0 ? totalCible / totalH : 120;
+}
+
 function KPICard({ label, value, sub, color = '#1A2B4A', bg = '#D6E4F0', warn }) {
   return (
     <div style={{ background: bg, borderRadius: 10, padding: '16px 20px', borderLeft: `4px solid ${color}`, minWidth: 150, flex: 1 }}>
@@ -374,7 +411,7 @@ export default function App() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
             <KPICard label="Revenu Total" value={fmtMoney(kpis.totalRevenu)} sub={`Prevu: ${fmtMoney(kpis.totalRevenuPrevu)}`} color="#1E7D46" bg="#D6F0E0" />
             <KPICard label="Ecart Revenu" value={`${kpis.ecart >= 0 ? '+' : ''}${fmtMoney(kpis.ecart)}`} color={kpis.ecart >= 0 ? '#1E7D46' : '#C0392B'} bg={kpis.ecart >= 0 ? '#D6F0E0' : '#FDECEA'} warn={kpis.ecart < 0} />
-            <KPICard label="$/h Moyen" value={kpis.dph !== null ? `$${kpis.dph.toFixed(0)}` : 'N/A'} sub={kpis.dph !== null ? 'Cible: $120/h' : 'Heures non disponibles'} color={kpis.dph === null ? '#6B7280' : kpis.dph >= 120 ? '#1E7D46' : '#E8A020'} bg={kpis.dph === null ? '#F3F4F6' : kpis.dph >= 120 ? '#D6F0E0' : '#FFF9C4'} />
+            <KPICard label="$/h Moyen" value={kpis.dph !== null ? `$${kpis.dph.toFixed(0)}` : 'N/A'} sub={kpis.dph !== null ? `Cible: ${Math.round(getCibleCondoDph(filtered, hoursMap))}/h` : 'Heures non disponibles'} color={kpis.dph === null ? '#6B7280' : kpis.dph >= getCibleCondoDph(filtered, hoursMap) ? '#1E7D46' : '#E8A020'} bg={kpis.dph === null ? '#F3F4F6' : kpis.dph >= getCibleCondoDph(filtered, hoursMap) ? '#D6F0E0' : '#FFF9C4'} />
             <KPICard label="Pts/Jour Moyen" value={kpis.avgPtsDay.toFixed(1)} sub={`Cible: 8 pts/j - ${kpis.pctAbove8.toFixed(0)}% des jours >=8`} color={kpis.avgPtsDay >= 8 ? '#1E7D46' : kpis.avgPtsDay >= 5 ? '#2563EB' : '#C0392B'} bg={kpis.avgPtsDay >= 8 ? '#D6F0E0' : kpis.avgPtsDay >= 5 ? '#FFF9C4' : '#FDECEA'} />
             <KPICard label="Total RDV" value={kpis.totalRDV.toFixed(0)} sub="RDV completes" />
             <KPICard label="Jours Analyses" value={kpis.nbJours} sub="Journees gestionnaire" />

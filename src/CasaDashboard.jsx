@@ -45,6 +45,22 @@ function StatusDot({ value, seuil, inverse = false }) {
   return <span style={{ color: ok ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{fmtDec(value, 1)}</span>;
 }
 
+
+function getCibleCasaDph(rows) {
+  let totalH = 0, totalCible = 0;
+  rows.forEach(r => {
+    if (!r.dateStr) return;
+    const m = new Date(r.dateStr).getMonth();
+    const h = parseFloat(r.heures) || 0;
+    let cible = 120;
+    if ([11,0,1,2].includes(m)) cible = 90;
+    else if ([3,9,10].includes(m)) cible = 100;
+    totalH += h;
+    totalCible += h * cible;
+  });
+  return totalH > 0 ? totalCible / totalH : 120;
+}
+
 export default function CasaDashboard({ onCasaRowsLoaded, user }) {
   const [allRows,    setAllRows]    = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -116,7 +132,7 @@ export default function CasaDashboard({ onCasaRowsLoaded, user }) {
   }
 
   const ecartRev   = kpis.totalRevenuReel - kpis.totalRevenuPrevu;
-  const statusH    = kpis.avgDollarH   !== null ? (kpis.avgDollarH   >= SEUIL_DOLLAR_H  ? 'green' : 'red') : 'neutral';
+  const cibleDph = getCibleCasaDph(filteredForKpis); const statusH = kpis.avgDollarH !== null ? (kpis.avgDollarH >= cibleDph ? 'green' : 'red') : 'neutral';
   const statusKm   = kpis.avgDollarKm  !== null ? (kpis.avgDollarKm  >= SEUIL_DOLLAR_KM ? 'green' : 'red') : 'neutral';
   const statusEcart= ecartRev >= 0 ? 'green' : 'red';
 
@@ -243,7 +259,7 @@ export default function CasaDashboard({ onCasaRowsLoaded, user }) {
         <KpiCard
           label="$/h moyen"
           value={kpis.avgDollarH !== null ? `$${fmtDec(kpis.avgDollarH, 0)}/h` : '—'}
-          sub={`Cible : $${SEUIL_DOLLAR_H}/h`}
+          sub={`Cible : ${Math.round(cibleDph)}/h`}
           status={statusH}
         />
         <KpiCard
@@ -310,7 +326,7 @@ export default function CasaDashboard({ onCasaRowsLoaded, user }) {
                     </span>
                   </td>
                   <td style={cellStyle}>
-                    <span style={{ color: (t.avgDollarH ?? 0) >= SEUIL_DOLLAR_H ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                    <span style={{ color: (t.avgDollarH ?? 0) >= cibleDph ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                       {t.avgDollarH !== null ? `$${fmtDec(t.avgDollarH, 0)}/h` : '—'}
                     </span>
                   </td>
@@ -368,7 +384,7 @@ export default function CasaDashboard({ onCasaRowsLoaded, user }) {
                   <td style={cellStyle}>{r.estKm !== null ? fmtDec(r.estKm, 0) : '—'}</td>
                   <td style={cellStyle}>{r.realKm !== null ? fmtDec(r.realKm, 0) : '—'}</td>
                   <td style={cellStyle}>
-                    <span style={{ color: (r.kpiDollarH ?? 0) >= SEUIL_DOLLAR_H ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                    <span style={{ color: (r.kpiDollarH ?? 0) >= cibleDph ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
                       {r.kpiDollarH !== null ? `$${fmtDec(r.kpiDollarH, 0)}/h` : '—'}
                     </span>
                   </td>
