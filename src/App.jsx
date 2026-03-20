@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchData } from './utils/parseData';
+import { fetchJobberCondoData, filterJobberCondo, computeJobberCondoKpis } from './utils/parseJobberCondo';
+import CondoJobberDashboard from './CondoJobberDashboard';
 import CasaDashboard from './CasaDashboard';
 import TechniciensDashboard from './TechniciensDashboard';
 import BillingDashboard from './BillingDashboard';
@@ -143,6 +145,7 @@ export default function App() {
   });
 
   const [allData, setAllData] = useState([]);
+  const [jobberCondoRows, setJobberCondoRows] = useState([]);
   const [casaAllRows, setCasaAllRows] = useState([]);
   const [hoursMap, setHoursMap] = useState({});
   const [loading, setLoading] = useState(false);
@@ -180,7 +183,9 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const [data, hMap] = await Promise.all([fetchData(), fetchHoursMap()]);
+      const [data, hMap, jobberCondo] = await Promise.all([fetchData(), fetchHoursMap(), fetchJobberCondoData()]);
+      setJobberCondoRows(jobberCondo);
+      console.log("Jobber Condo rows:", jobberCondo.length, "gestionnaires:", [...new Set(jobberCondo.map(r=>r.gestionnaire))].slice(0,5));
       setAllData(data);
       setHoursMap(hMap);
       setLastRefresh(new Date());
@@ -398,7 +403,7 @@ export default function App() {
       </div>
 
       <div style={{ padding: '20px 24px' }}>
-        {activeDept === 'scoreboard' && canSeeScoreboard ? <TechScoreboard user={user} /> : activeDept === 'billing' && canSeeBilling ? <BillingDashboard role={role} /> : activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <>
+        {activeDept === 'scoreboard' && canSeeScoreboard ? <TechScoreboard user={user} /> : activeDept === 'billing' && canSeeBilling ? <BillingDashboard role={role} /> : activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <CondoJobberDashboard rows={jobberCondoRows} hoursMap={hoursMap} user={user} /> : activeDept === 'condo_old' && canSeeCondo ? <>
         <Section title="Filtres">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
             <div><div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 4 }}>DATE DEBUT</div><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} /></div>

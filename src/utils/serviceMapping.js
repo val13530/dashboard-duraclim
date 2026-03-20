@@ -13,9 +13,10 @@ export function scoreService(raw) {
   const has5Demi = /5 1\/2|5½|penthouse/.test(sl);
   const isContratDay = /contrat day/.test(sl);
   const isTrio = /trio/.test(sl);
-  const isCommune = /commune|commun|chute|conduit commun|désinfection|camera/.test(sl);
+  const isCommune = /commune|commun|chute|conduit commun|camera/.test(sl);
 
   if (isCommune) return 0;
+  if (hasInspection && !hasSech && !hasEch && !hasMural && !hasCentrale) return 0;
 
   let addonPts = 0;
   if (hasFan) addonPts += 0.25;
@@ -29,6 +30,8 @@ export function scoreService(raw) {
   else if (isTrio) { base = 1.00; }
   else if (hasInspection && !hasSech && !hasEch && !hasMural && !hasCentrale) { base = 0; }
   else if (hasSech && hasInspection && !hasEch && !hasMural && !hasCentrale) { base = 0.50; }
+  else if (hasFan && !hasEch && !hasMural && !hasCentrale && !hasSech && !hasHotte) { base = 0.25; addonPts = 0; }
+  else if (hasHotte && !hasEch && !hasMural && !hasCentrale && !hasSech && !hasFan) { base = 0.25; addonPts = 0; }
   else if (hasMural && !hasEch && !hasCentrale && !hasSech) { base = 0.50; }
   else if (hasCentrale && !hasEch && !hasMural && !hasSech) { base = 1.00; }
   else if (hasEch && !hasMural && !hasCentrale && !hasSech) { base = 0.75; }
