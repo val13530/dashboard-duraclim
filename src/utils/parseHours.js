@@ -95,3 +95,58 @@ export async function fetchHoursByTech() {
     });
   });
 }
+
+export async function fetchHoursCasa() {
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4SbKL6EQEmRghLqqaddDo5W3IpKlxLaun3m4r8xBVaLyR0bFydVhR4utpiYcvaNZV4UUETGIpLc01/pub?gid=0&single=true&output=csv';
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, skipEmptyLines: true,
+      complete: ({ data }) => {
+        const map = {};
+        data.forEach(row => {
+          const dateKey = Object.keys(row).find(k => k.toLowerCase().includes('date'));
+          const techKey = Object.keys(row).find(k => k.toLowerCase().includes('technicien') || k.toLowerCase().includes('tech'));
+          const heuresKey = Object.keys(row).find(k => k.toLowerCase().includes('heure'));
+          if (!dateKey || !techKey || !heuresKey) return;
+          const date = parseDate(row[dateKey]);
+          if (!date) return;
+          const tech = String(row[techKey] || '').trim();
+          if (!tech || tech.length < 2) return;
+          const h = cleanNum(row[heuresKey]);
+          if (h <= 0) return;
+          const key = dateStr(date) + '_' + tech;
+          if (!map[key]) map[key] = 0;
+          map[key] = Math.max(map[key], h);
+        });
+        resolve(map);
+      },
+      error: reject,
+    });
+  });
+}
+
+export async function fetchHoursCondoTech() {
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQS1zkSYJ3E9477mX_4u9Qyxax5mDhnAaXGmIlMTUMmJgvTPL23C8j3vG4I4sUBMowU4gnddiypKk91/pub?gid=411069068&single=true&output=csv';
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, skipEmptyLines: true,
+      complete: ({ data }) => {
+        const map = {};
+        data.forEach(row => {
+          const date = parseDate(row['Date'] || '');
+          if (!date) return;
+          const techColKey = Object.keys(row).find(k => k.toLowerCase().includes("nom du tech")); const tech = techColKey ? String(row[techColKey] || "").trim() : "";
+          if (!tech || tech.length < 2) return;
+          const heuresKey = Object.keys(row).find(k => k.toLowerCase().includes("nombre") && k.toLowerCase().includes("heure")); const h = heuresKey ? cleanNum(row[heuresKey]) : 0;
+          if (h <= 0) return;
+          const key = dateStr(date) + '_' + tech;
+          if (!map[key]) map[key] = 0;
+          map[key] = Math.max(map[key], h);
+        });
+        
+        resolve(map);
+      },
+      error: reject,
+    });
+  });
+}

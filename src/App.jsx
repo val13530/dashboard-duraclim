@@ -3,6 +3,7 @@ import { fetchData } from './utils/parseData';
 import CasaDashboard from './CasaDashboard';
 import TechniciensDashboard from './TechniciensDashboard';
 import BillingDashboard from './BillingDashboard';
+import TechScoreboard from './TechScoreboard';
 import { fetchHoursMap } from './utils/parseHours';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -155,6 +156,7 @@ export default function App() {
     const r = user?.role || '';
     if (['dispatch_casa'].includes(r)) return 'casa';
     if (['billing'].includes(r)) return 'billing';
+    if (['technicien'].includes(r)) return 'scoreboard';
     if (['manager_tech'].includes(r)) return 'tech';
     return 'condo';
   });
@@ -169,6 +171,7 @@ export default function App() {
   const canSeeCondo = ['manager_condo', 'admin', 'gestionnaire', 'dispatch_condo'].includes(role);
   const canSeeTech  = ['admin', 'manager_condo', 'manager_tech'].includes(role);
   const canSeeBilling = ['admin', 'billing'].includes(role);
+  const canSeeScoreboard = ['admin', 'manager_tech', 'technicien'].includes(role);
   const canSeeCasa  = ['admin', 'dispatch_casa'].includes(role);
   const isManagerCondo = role === 'manager_condo';
   const isAdmin = user?.role === 'admin';
@@ -384,8 +387,9 @@ export default function App() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginRight: 16 }}>
           {canSeeCondo && <button onClick={() => setActiveDept('condo')} style={{ background: activeDept === 'condo' ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'condo' ? '#fff' : '#1A2B4A' }}>Condo</button>}
           {canSeeCasa  && <button onClick={() => setActiveDept('casa')}  style={{ background: activeDept === 'casa'  ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'casa' ? '#fff' : '#1A2B4A' }}>Casa</button>}
-          {canSeeTech  && <button onClick={() => setActiveDept('tech')}  style={{ background: activeDept === 'tech'  ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'tech' ? '#fff' : '#1A2B4A' }}>Techniciens</button>}
+          {canSeeTech  && <button onClick={() => setActiveDept('tech')}  style={{ background: activeDept === 'tech'  ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'tech' ? '#fff' : '#1A2B4A' }}>Technician Management</button>}
           {canSeeBilling && <button onClick={() => setActiveDept('billing')} style={{ background: activeDept === 'billing' ? '#2563EB' : 'transparent', color: '#fff', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'billing' ? '#fff' : '#1A2B4A' }}>Facturation</button>}
+          {canSeeScoreboard && <button onClick={() => setActiveDept('scoreboard')} style={{ background: activeDept === 'scoreboard' ? '#2563EB' : 'transparent', border: '1px solid #2563EB', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: activeDept === 'scoreboard' ? '#fff' : '#1A2B4A' }}>Scoreboard</button>}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={load} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Actualiser</button>
@@ -394,7 +398,7 @@ export default function App() {
       </div>
 
       <div style={{ padding: '20px 24px' }}>
-        {activeDept === 'billing' && canSeeBilling ? <BillingDashboard role={role} /> : activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <>
+        {activeDept === 'scoreboard' && canSeeScoreboard ? <TechScoreboard user={user} /> : activeDept === 'billing' && canSeeBilling ? <BillingDashboard role={role} /> : activeDept === 'tech' && canSeeTech ? <TechniciensDashboard role={role} condoRows={allData} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} /> : activeDept === 'casa' && canSeeCasa ? <CasaDashboard user={user} onCasaRowsLoaded={setCasaAllRows} /> : activeDept === 'condo' && canSeeCondo ? <>
         <Section title="Filtres">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
             <div><div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 4 }}>DATE DEBUT</div><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} /></div>
