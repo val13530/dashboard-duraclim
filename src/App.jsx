@@ -172,12 +172,12 @@ export default function App() {
 
   const isGestionnaire = user?.role === 'gestionnaire';
   const role = user?.role || '';
-  const canSeeCondo = ['manager_condo', 'admin', 'gestionnaire', 'dispatch_condo'].includes(role);
+  const canSeeCondo = ['manager_condo', 'admin', 'gestionnaire', 'dispatch_condo', 'manager_dispatch'].includes(role);
   const canSeeTech  = ['admin', 'manager_condo', 'manager_tech'].includes(role);
   const canSeeBilling = ['admin', 'billing'].includes(role);
   const canSeeVenteCasa = ['admin'].includes(role);
   const canSeeScoreboard = ['admin', 'manager_tech', 'technicien'].includes(role);
-  const canSeeCasa  = ['admin', 'dispatch_casa'].includes(role);
+  const canSeeCasa  = ['admin', 'dispatch_casa', 'manager_dispatch'].includes(role);
   const isManagerCondo = role === 'manager_condo';
   const isAdmin = user?.role === 'admin';
 
