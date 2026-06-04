@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { filterJobberCondo, computeJobberCondoKpis } from './utils/parseJobberCondo';
+import { fetchCondoOpsData, computeCondoOpsKpis } from './utils/parseCondoOps';
 import HelpPanel from './HelpPanel';
 
 function fmt$(n) { return n == null ? 'N/A' : '$' + Math.round(n).toLocaleString('fr-CA'); }
@@ -37,6 +38,8 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [sortCol, setSortCol] = useState('dateStr');
   const [sortDir, setSortDir] = useState('desc');
+  const [condoOpsRows, setCondoOpsRows] = useState([]);
+  useEffect(() => { fetchCondoOpsData().then(setCondoOpsRows).catch(console.error); }, []);
 
   const gestionnaires = useMemo(() => {
     const all = [...new Set(rows.map(r => r.gestionnaire).filter(g => g && g !== 'N/A' && g !== 'None'))].sort();
@@ -49,6 +52,7 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
   }).filter(r => r.gestionnaire && r.gestionnaire !== 'N/A' && r.gestionnaire !== 'None'), [rows, dateFrom, dateTo, filterGest, isGestionnaire, username]);
 
   const kpis = useMemo(() => computeJobberCondoKpis(filtered, hoursMap, isGestionnaire ? username : filterGest), [filtered, hoursMap, filterGest, isGestionnaire, username]);
+  const opsKpis = useMemo(() => computeCondoOpsKpis(condoOpsRows, hoursMap, dateFrom, dateTo), [condoOpsRows, hoursMap, dateFrom, dateTo]);
 
   // Par gestionnaire pour vue globale
   const byGest = useMemo(() => {
@@ -141,15 +145,16 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
-        <KPICard label="Revenu Total" value={fmt$(kpis.totalRevenu)} sub={'Cible: non definie'} color="#1E7D46" bg="#D6F0E0" />
-        <KPICard label="$/h Moyen" value={kpis.dph != null ? '$' + fmtDec(kpis.dph, 0) : 'N/A'} sub={kpis.dph != null ? 'Cible: $120/h' : 'Heures non disponibles'} color={kpis.dph == null ? '#6B7280' : kpis.dph >= 120 ? '#1E7D46' : '#E8A020'} bg={kpis.dph == null ? '#F3F4F6' : kpis.dph >= 120 ? '#D6F0E0' : '#FFF9C4'} />
+        <KPICard label="Revenu Reel" value={fmt$(opsKpis.totalRevenuReel)} sub={'Prevu: ' + fmt$(opsKpis.totalRevenuPrevu)} color="#1E7D46" bg="#D6F0E0" />
+        <KPICard label="Ecart Reel/Prevu" value={fmt$(opsKpis.totalRevenuReel - opsKpis.totalRevenuPrevu)} sub="Positif = ventes additionnelles" color={opsKpis.totalRevenuReel >= opsKpis.totalRevenuPrevu ? '#1E7D46' : '#C0392B'} bg={opsKpis.totalRevenuReel >= opsKpis.totalRevenuPrevu ? '#D6F0E0' : '#FDECEA'} />
+        <KPICard label="$/h Departement" value={opsKpis.dphDept != null ? '$' + fmtDec(opsKpis.dphDept, 0) : 'N/A'} sub={opsKpis.dphDept != null ? 'Cible: $120/h' : 'Heures non disponibles'} color={opsKpis.dphDept == null ? '#6B7280' : opsKpis.dphDept >= 120 ? '#1E7D46' : '#E8A020'} bg={opsKpis.dphDept == null ? '#F3F4F6' : opsKpis.dphDept >= 120 ? '#D6F0E0' : '#FFF9C4'} />
         <KPICard label="Pts/Jour Moyen" value={fmtDec(kpis.avgPtsDay)} sub={'Cible: 8 pts/j — ' + fmtDec(kpis.pctAbove8, 0) + '% des jours >=8'} color={kpis.avgPtsDay >= 8 ? '#1E7D46' : kpis.avgPtsDay >= 5 ? '#2563EB' : '#C0392B'} bg={kpis.avgPtsDay >= 8 ? '#D6F0E0' : kpis.avgPtsDay >= 5 ? '#FFF9C4' : '#FDECEA'} />
         <KPICard label="Total RDV" value={kpis.totalRDV} sub={kpis.nbJours + ' jours analyses'} />
         <KPICard label="Pts Total" value={fmtDec(kpis.totalPts)} sub="Points cumules" />
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {[['overview','Gestionnaires'],['jours','Par jour'],['detail','Detail jobs']].map(([id,label]) => (
+        {[['overview','Gestionnaires'],['jours','Par jour'],['detail','Detail jobs'],['techs','$/h Techniciens']].map(([id,label]) => (
           <button key={id} style={tabStyle(activeTab===id)} onClick={() => setActiveTab(id)}>{label}</button>
         ))}
       </div>
@@ -247,6 +252,35 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
                 </tr>
               ))}
               {sorted.length === 0 && <tr><td colSpan={6} style={{ ...td(), textAlign: 'center', color: '#aaa' }}>Aucune donnee</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'techs' && (
+        <div style={{ borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+          <div style={{ background: '#1A2B4A', color: '#fff', padding: '12px 16px', fontWeight: 700, fontSize: 14 }}>
+            $/h par technicien
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr>
+              <th style={th()}>Technicien</th>
+              <th style={th(true)}>Revenu Reel</th>
+              <th style={th(true)}>Heures</th>
+              <th style={th(true)}>$/h</th>
+            </tr></thead>
+            <tbody>
+              {opsKpis.byTech.map((t, i) => (
+                <tr key={t.nom} style={{ background: i%2===0?'#fff':'#f9fafb' }}>
+                  <td style={{ ...td(), fontWeight: 600, color: '#1A2B4A' }}>{t.nom || '—'}</td>
+                  <td style={td(true)}>{fmt$(t.revenu)}</td>
+                  <td style={{ ...td(true), color: '#555' }}>{t.heures > 0 ? t.heures.toFixed(1) + 'h' : '—'}</td>
+                  <td style={{ ...td(true), color: t.dph == null ? '#888' : t.dph >= 120 ? '#16a34a' : '#ea580c', fontWeight: 700 }}>
+                    {t.dph != null ? '$' + Math.round(t.dph) : '—'}
+                  </td>
+                </tr>
+              ))}
+              {opsKpis.byTech.length === 0 && <tr><td colSpan={4} style={{ ...td(), textAlign: 'center', color: '#aaa' }}>Aucune donnee</td></tr>}
             </tbody>
           </table>
         </div>
