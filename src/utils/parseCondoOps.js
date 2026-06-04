@@ -75,13 +75,20 @@ export function computeCondoOpsKpis(rows, hoursMap, dateFrom, dateTo) {
   filtered.forEach(r => {
     const techs = [r.tech1, r.tech2].filter(Boolean);
     techs.forEach(tech => {
-      if (!techMap[tech]) techMap[tech] = { revenu: 0, heures: 0 };
+      if (!techMap[tech]) techMap[tech] = { revenu: 0, jours: new Set() };
       techMap[tech].revenu += r.revenuReel / techs.length;
-      techMap[tech].heures += r.nbHTech;
+      techMap[tech].jours.add(r.dateStr);
     });
   });
   const byTech = Object.entries(techMap)
-    .map(([nom, v]) => ({ nom, revenu: v.revenu, heures: v.heures, dph: v.heures > 0 ? v.revenu / v.heures : null }))
+    .map(([nom, v]) => {
+      let heures = 0;
+      [...v.jours].forEach(dk => {
+        const h = hoursMap[dk + '_' + nom];
+        if (h != null) heures += h;
+      });
+      return { nom, revenu: v.revenu, heures, dph: heures > 0 ? v.revenu / heures : null };
+    })
     .sort((a, b) => (b.dph || 0) - (a.dph || 0));
 
   return { totalRevenuReel, totalRevenuPrevu, dphDept, totalHeuresDept, byTech };

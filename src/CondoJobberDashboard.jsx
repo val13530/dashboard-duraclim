@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { filterJobberCondo, computeJobberCondoKpis } from './utils/parseJobberCondo';
+import { fetchHoursCondoTech } from './utils/parseHours';
 import { fetchCondoOpsData, computeCondoOpsKpis } from './utils/parseCondoOps';
 import HelpPanel from './HelpPanel';
 
@@ -27,6 +28,49 @@ function ProgressBar({ val, max, color }) {
 
 const GESTIONNAIRES_VALIDES = ['Hajar', 'Zak', 'Wissal D.', 'Wissal', 'Nada', 'Wafa'];
 
+
+function TechExcludeFilter({ techs, excluded, onToggle }) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const filtered = techs.filter(t => t.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div style={{ position: 'relative', minWidth: 220 }}>
+      <input
+        value={search}
+        onChange={e => { setSearch(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Rechercher un technicien..."
+        style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, width: '100%' }}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: 6, zIndex: 100, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          {filtered.map(t => (
+            <div key={t} onMouseDown={() => { onToggle(t); setSearch(''); }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: excluded.includes(t) ? '#fdecea' : '#fff',
+                color: excluded.includes(t) ? '#C0392B' : '#222',
+              }}>
+              <span>{t}</span>
+              {excluded.includes(t) && <span style={{ fontWeight: 700 }}>✗ exclu</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {excluded.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+          {excluded.map(t => (
+            <span key={t} onClick={() => onToggle(t)} style={{
+              padding: '2px 8px', borderRadius: 12, fontSize: 11, cursor: 'pointer',
+              background: '#C0392B', color: '#fff', fontWeight: 600,
+            }}>{t} ×</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CondoJobberDashboard({ rows, hoursMap, user }) {
   const role = user?.role || '';
   const isGestionnaire = role === 'gestionnaire';
@@ -38,8 +82,14 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [sortCol, setSortCol] = useState('dateStr');
   const [sortDir, setSortDir] = useState('desc');
+  const [excludedTechs, setExcludedTechs] = useState([]);
+  const togTech = t => setExcludedTechs(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]);
   const [condoOpsRows, setCondoOpsRows] = useState([]);
-  useEffect(() => { fetchCondoOpsData().then(setCondoOpsRows).catch(console.error); }, []);
+  const [hoursCondoTech, setHoursCondoTech] = useState({});
+  useEffect(() => {
+    fetchCondoOpsData().then(setCondoOpsRows).catch(console.error);
+    fetchHoursCondoTech().then(setHoursCondoTech).catch(console.error);
+  }, []);
 
   const gestionnaires = useMemo(() => {
     const all = [...new Set(rows.map(r => r.gestionnaire).filter(g => g && g !== 'N/A' && g !== 'None'))].sort();
@@ -52,7 +102,18 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
   }).filter(r => r.gestionnaire && r.gestionnaire !== 'N/A' && r.gestionnaire !== 'None'), [rows, dateFrom, dateTo, filterGest, isGestionnaire, username]);
 
   const kpis = useMemo(() => computeJobberCondoKpis(filtered, hoursMap, isGestionnaire ? username : filterGest), [filtered, hoursMap, filterGest, isGestionnaire, username]);
-  const opsKpis = useMemo(() => computeCondoOpsKpis(condoOpsRows, hoursMap, dateFrom, dateTo), [condoOpsRows, hoursMap, dateFrom, dateTo]);
+  const allOpsTechs = useMemo(() => {
+    const s = new Set();
+    condoOpsRows.forEach(r => { if (r.tech1) s.add(r.tech1); if (r.tech2) s.add(r.tech2); });
+    return [...s].sort();
+  }, [condoOpsRows]);
+
+  const filteredOpsRows = useMemo(() => condoOpsRows.filter(r => {
+    if (excludedTechs.includes(r.tech1) && excludedTechs.includes(r.tech2)) return false;
+    return true;
+  }), [condoOpsRows, excludedTechs]);
+
+  const opsKpis = useMemo(() => computeCondoOpsKpis(filteredOpsRows, hoursCondoTech, dateFrom, dateTo), [filteredOpsRows, hoursCondoTech, dateFrom, dateTo]);
 
   // Par gestionnaire pour vue globale
   const byGest = useMemo(() => {
@@ -139,9 +200,15 @@ export default function CondoJobberDashboard({ rows, hoursMap, user }) {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={inp} />
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button onClick={() => { setDateFrom(''); setDateTo(''); setFilterGest('Tous'); }}
+          <button onClick={() => { setDateFrom(''); setDateTo(''); setFilterGest('Tous'); setExcludedTechs([]); }}
             style={{ ...inp, background: '#fff', cursor: 'pointer' }}>Réinitialiser</button>
         </div>
+        {allOpsTechs.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, color: '#666', marginBottom: 4 }}>Exclure techniciens (revenu/$/h)</div>
+            <TechExcludeFilter techs={allOpsTechs} excluded={excludedTechs} onToggle={togTech} />
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
