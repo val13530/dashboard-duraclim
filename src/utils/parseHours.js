@@ -126,7 +126,10 @@ export async function fetchHoursCasa() {
 }
 
 export async function fetchHoursCondoTech() {
-  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQS1zkSYJ3E9477mX_4u9Qyxax5mDhnAaXGmIlMTUMmJgvTPL23C8j3vG4I4sUBMowU4gnddiypKk91/pub?gid=411069068&single=true&output=csv';
+  const raw = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQS1zkSYJ3E9477mX_4u9Qyxax5mDhnAaXGmIlMTUMmJgvTPL23C8j3vG4I4sUBMowU4gnddiypKk91/pub?gid=411069068&single=true&output=csv';
+  const url = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? '/api/sheets?url=' + encodeURIComponent(raw)
+    : raw;
   return new Promise((resolve, reject) => {
     Papa.parse(url, {
       download: true, header: true, skipEmptyLines: true,
