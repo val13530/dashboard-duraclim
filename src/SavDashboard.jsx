@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 
-const SAV_CSV_URL = '/api/sheets?url=' + encodeURIComponent(
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-hdhLC9YjtK7JHYVZcCxNie1VboZ98qq6WU4wk8rq1jZFmI9oiQxVXped7szu9h11EmdQvO0gn0ov/pub?gid=1127543800&single=true&output=csv'
-);
+const SAV_CSV_URL = import.meta.env.DEV ? 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-hdhLC9YjtK7JHYVZcCxNie1VboZ98qq6WU4wk8rq1jZFmI9oiQxVXped7szu9h11EmdQvO0gn0ov/pub?gid=1127543800&single=true&output=csv' : '/api/sheets?url=' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vR-hdhLC9YjtK7JHYVZcCxNie1VboZ98qq6WU4wk8rq1jZFmI9oiQxVXped7szu9h11EmdQvO0gn0ov/pub?gid=1127543800&single=true&output=csv');
 
 const TAUX_HORAIRE = 22;
 const COUT_DEPLACEMENT = 171;
@@ -150,8 +148,9 @@ export default function SavDashboard() {
     fetch(SAV_CSV_URL)
       .then(r => r.text())
       .then(text => {
-        const result = Papa.parse(text, { header: true, skipEmptyLines: true });
-        setRows(result.data.map(parseSavRow));
+        const result = Papa.parse(text, { header: true, skipEmptyLines: "greedy" });
+        console.log("SAV raw rows:", result.data.length);
+setRows(result.data.filter(r => r["Submission ID"] && String(r["Submission ID"]).trim() !== "").map(parseSavRow));
         setLoading(false);
       })
       .catch(() => { setError('Impossible de charger les données SAV.'); setLoading(false); });
